@@ -17,7 +17,6 @@ from splitgraph.commandline.cloud import wait_for_download
 logger = logging.getLogger(__name__)
 click_log.basic_config(logger)
 
-REMOTE = "data.splitgraph.com"
 SCHEMA = {
     "id": "TEXT",
     "domain": "TEXT",
