@@ -102,6 +102,7 @@ def start_export(
             "variables": variables,
         },
         handle_errors=True,
+        anonymous_ok=True,
     )
     return str(response.json()["data"]["exportQuery"]["id"])
 
@@ -135,7 +136,8 @@ def get_socrata_images(client: GQLAPIClient) -> List[SocrataImage]:
             "operationName": "AllSocrataImages",
             "variables": {},
             "query": ALL_IMAGES_AND_TAGS,
-        }
+        },
+        anonymous_ok=True,
     )
     _handle_gql_errors(response)
     result = response.json()
