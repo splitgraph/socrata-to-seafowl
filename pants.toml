@@ -1,0 +1,88 @@
+[GLOBAL]
+pants_version = "2.14.0"
+backend_packages = [
+  "pants.backend.google_cloud_function.python",
+  "pants.backend.python",
+  "pants.backend.experimental.python.lint.autoflake",
+  # Run isort before Black so that Black can format isort's output
+  "pants.backend.python.lint.isort",
+  "pants.backend.python.lint.black",
+  "pants.backend.python.typecheck.mypy",
+  "pants.backend.python.lint.flake8",
+]
+# Colors often work in CI, but the shell is usually not a TTY so Pants
+# doesn't attempt to use them by default.
+colors = true
+
+[source]
+root_patterns = [
+  "src",
+  "3rdparty"
+]
+
+[mypy]
+config = "build_support/mypy.ini"
+lockfile = "build_support/mypy.lock"
+args = ["--linecount-report=reports", "--html-report=reports"]
+version = "mypy==0.982"
+extra_requirements = [
+  "pydantic>=1.8.1",
+  "lxml>=4.6.3",
+]
+extra_type_stubs = [
+  "types-requests>=2.25.0",
+]
+
+[isort]
+args = [
+  "--profile=black",
+]
+
+[autoflake]
+args = [
+  "--exclude",
+  "conftest.py",
+  "--remove-duplicate-keys",
+  "--ignore-init-module-imports",
+  "--remove-all-unused-imports",
+  "--expand-star-imports",
+  "--remove-unused-variables",
+]
+
+[flake8]
+lockfile = "build_support/flake8.lock"
+config = "build_support/.flake8"
+extra_requirements = [
+  "flake8-html>=0.4.1",
+  "flake8-pytest-style>=1.5.0",
+  "flake8-bugbear>=21.9.2",
+  "flake8-debugger>=4.0.0",
+  "flake8-comprehensions>=3.7.0",
+  "flake8-simplify>=0.14.2",
+]
+
+[anonymous-telemetry]
+enabled = false
+
+[python]
+interpreter_constraints = ["CPython==3.9.*"]
+
+[test]
+output = "failed"
+use_coverage = true
+
+[coverage-py]
+interpreter_constraints = [">=3.8"]
+report = ["xml", "html", "console", "raw"]
+config = "build_support/.coveragerc"
+
+[pytest]
+version = "pytest>=7.0"
+lockfile = "build_support/pytest.lock"
+# Get Pytest to output a JUnit report with file paths
+junit_family = "xunit1"
+extra_requirements.add = [
+  "pytest-icdiff>=0.5",
+  "pygments>=2.10.0",
+  "pytest-rerunfailures>=10.1",
+]

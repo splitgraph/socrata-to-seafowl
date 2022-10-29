@@ -1,0 +1,14 @@
+[flake8]
+
+# Ignore formatting (Black handles)
+# Also ignore flake8-pytest-style:
+# * "use @pytest.mark.foo() over @pytest.mark.foo"
+# * "use @pytest.fixture() over @pytest.fixture"
+# * set the match parameter in pytest.raises (PT011)
+# * SIM106 due to https://github.com/MartinThoma/flake8-simplify/issues/14
+# * SIM117 (nested context managers; PITA to fix without much value)
+ignore = E101,E111,E114,E115,E116,E117,E12,E13,E2,E3,E401,E5,E70,W1,W2,W3,W5,PT001,PT023,PT011,SIM106,SIM117
+
+per-file-ignores =
+    # Ignore fixture imports (imported-but-unused, redefinition of unused 'fixture')
+    conftest.py: F401, F811
