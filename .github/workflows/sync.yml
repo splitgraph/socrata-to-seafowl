@@ -1,0 +1,28 @@
+name: Sync Socrata to Seafowl
+
+# TODO add cronjob
+on: workflow_dispatch
+
+jobs:
+  sync:
+    name: Run the sync
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.9 ]
+    steps:
+    - uses: actions/checkout@v3
+    - uses: pantsbuild/actions/init-pants@main
+      with:
+        gha-cache-key: cache0-py${{ matrix.python-version }}
+        named-caches-hash: ${{ hashFiles('python-default.lock') }}
+        cache-lmdb-store: 'true'  # defaults to 'false'
+        base-branch: 'master'
+        pants-ci-config: ''
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Package / Run
+      run: |
+        ./pants run src/s2sf:s2sf
