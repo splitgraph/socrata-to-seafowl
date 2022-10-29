@@ -23,6 +23,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Package / Run
+    - name: Run the sync
       run: |
-        ./pants run src/s2sf:s2sf
+        ./pants run src/s2sf:s2sf -- data.splitgraph.com https://demo.seafowl.io
