@@ -12,6 +12,7 @@ from typing import Any, Dict, List, NamedTuple, Optional
 import click
 import click_log
 import requests
+from requests import HTTPError
 from splitgraph.cloud import GQLAPIClient, _handle_gql_errors
 from splitgraph.commandline.cloud import wait_for_download
 from tqdm import tqdm
@@ -253,15 +254,28 @@ def ensure_seafowl_schema(seafowl: str, access_token: Optional[str]) -> None:
 def get_seafowl_socrata_tags(
     seafowl: str, access_token: Optional[str]
 ) -> List[SocrataImage]:
-    result = (
-        query_seafowl(
-            seafowl,
-            f"SELECT DISTINCT sg_image_hash, sg_image_tag, sg_image_created "
-            f"FROM {SEAFOWL_SCHEMA}.{SEAFOWL_TABLE} ORDER BY sg_image_created ASC",
-            access_token,
+    try:
+        result = (
+            query_seafowl(
+                seafowl,
+                f"SELECT DISTINCT sg_image_hash, sg_image_tag, sg_image_created "
+                f"FROM {SEAFOWL_SCHEMA}.{SEAFOWL_TABLE} ORDER BY sg_image_created ASC",
+                access_token,
+            )
+            or []
         )
-        or []
-    )
+    except HTTPError as e:
+        if (
+            "Internal error: CoalescePartitionsExec requires at least one input partition."
+            in str(e.response.text)
+        ):
+            # TODO: weird bug that only manifests on fly.io (??!?!?!?!)
+            logging.warning(
+                "Saw CoalescePartitionsExec error, assuming the table is empty"
+            )
+            return []
+        else:
+            raise
 
     return [
         SocrataImage(
