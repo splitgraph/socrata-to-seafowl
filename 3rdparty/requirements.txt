@@ -2,3 +2,4 @@ splitgraph
 requests
 click
 click-log
+tqdm

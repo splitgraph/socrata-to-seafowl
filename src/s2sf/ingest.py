@@ -1,3 +1,4 @@
+import itertools
 import json
 import logging
 import math
@@ -13,6 +14,7 @@ import click_log
 import requests
 from splitgraph.cloud import GQLAPIClient, _handle_gql_errors
 from splitgraph.commandline.cloud import wait_for_download
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 click_log.basic_config(logger)
@@ -40,7 +42,7 @@ SEAFOWL_TABLE = "dataset_history"
 
 ALL_IMAGES_AND_TAGS = """
 query AllSocrataImages {
-  images(orderBy:CREATED_DESC, condition:{namespace:"splitgraph", repository:"socrata"}) {
+  images(orderBy:CREATED_ASC, condition:{namespace:"splitgraph", repository:"socrata"}) {
     nodes {
       created
       imageHash
@@ -107,14 +109,25 @@ def start_export(
     return str(response.json()["data"]["exportQuery"]["id"])
 
 
-def get_socrata_download_url(client: GQLAPIClient, image_hash: str) -> str:
-    task_id = start_export(
-        client,
-        query=f'SELECT * FROM "splitgraph/socrata:{image_hash}".datasets',
-        export_format="parquet",
-    )
-    download_url = wait_for_download(client, task_id)
-    return download_url
+def get_socrata_download_url(
+    client: GQLAPIClient, image_hash: str, attempts: int = 3
+) -> str:
+    attempt = 1
+
+    while True:
+        try:
+            task_id = start_export(
+                client,
+                query=f'SELECT * FROM "splitgraph/socrata:{image_hash}".datasets',
+                export_format="parquet",
+            )
+            download_url = wait_for_download(client, task_id)
+            return download_url
+        except Exception as e:
+            if attempt == attempts:
+                raise
+            logger.warning("Error preparing the download URL, retrying", exc_info=e)
+            attempt += 1
 
 
 def _get_tag(image_node: Dict[str, Any]) -> Optional[str]:
@@ -130,7 +143,7 @@ def _get_tag(image_node: Dict[str, Any]) -> Optional[str]:
     return tags[0] if tags else None
 
 
-def get_socrata_images(client: GQLAPIClient) -> List[SocrataImage]:
+def get_socrata_images(client: GQLAPIClient, daily: bool = True) -> List[SocrataImage]:
     response = client._gql(
         {
             "operationName": "AllSocrataImages",
@@ -154,6 +167,18 @@ def get_socrata_images(client: GQLAPIClient) -> List[SocrataImage]:
                 image_tag=tag,
             )
         )
+
+    # If we only care about daily data, leave the first image in any given day (taken shortly after
+    # midnight). This is because then the daily image won't change throughout the day -- also
+    # because then the image for 2022-10-31 will incorporate just the changes from the previous day,
+    # not some changes from 2022-10-31.
+    if daily:
+        output = [
+            next(g)
+            for _, g in itertools.groupby(
+                sorted(output, key=lambda o: o.created), key=lambda o: o.created.date()
+            )
+        ]
 
     return output
 
@@ -182,7 +207,11 @@ def generate_insert(
 
     insert_query = (
         f"INSERT INTO {SEAFOWL_SCHEMA}.{SEAFOWL_TABLE} "
-        f"SELECT *, {emit_value(image_hash)} AS sg_image_hash, "
+        "(" + ", ".join(c for c in SCHEMA.keys()) + ") "
+        "SELECT "
+        + ", ".join(c for c in SCHEMA.keys() if not c.startswith("sg_"))
+        + ", "
+        f"{emit_value(image_hash)} AS sg_image_hash, "
         f"{emit_value(image_tag)} AS sg_image_tag, "
         f"{emit_value(image_created)} AS sg_image_created "
         f"FROM staging.{staging_table}"
@@ -264,11 +293,13 @@ def run_ingestion(
     seafowl: str,
     access_token: Optional[str],
     dry_run: bool = False,
+    max_images: Optional[int] = None,
+    daily: bool = True,
 ) -> None:
     click.echo("Getting all current Socrata images")
-    all_images = get_socrata_images(client)
+    all_images = get_socrata_images(client, daily=daily)
 
-    click.echo("Got %d image(s)" % len(all_images))
+    click.echo(f"Got {len(all_images)} image(s)")
 
     click.echo("Connecting to Seafowl and getting the latest Socrata images")
     ensure_seafowl_schema(seafowl, access_token)
@@ -278,27 +309,33 @@ def run_ingestion(
     )
 
     click.echo(
-        "Seafowl contains %d image(s), latest %s"
-        % (len(seafowl_images), latest_seafowl)
+        f"Seafowl contains {len(seafowl_images)} image(s), latest {latest_seafowl}"
     )
 
-    if not latest_seafowl:
-        to_ingest = all_images
-    else:
-        to_ingest = [i for i in all_images if i.created > latest_seafowl.created]
+    seafowl_image_tags = {i.image_tag for i in seafowl_images}
+
+    to_ingest = [i for i in all_images if i.image_tag not in seafowl_image_tags]
+
+    to_ingest = sorted(to_ingest, key=lambda i: i.created)[
+        : (max_images or len(to_ingest))
+    ]
 
     if not to_ingest:
         click.echo("Nothing to do.")
         return
 
-    click.echo("Need to ingest %d image(s)" % len(to_ingest))
+    click.echo(
+        f"Need to ingest {len(to_ingest)} image(s) ({to_ingest[0].image_tag} .. {to_ingest[-1].image_tag})"
+    )
 
     if dry_run:
         click.echo("Dry run, returning.")
         return
 
-    for image in to_ingest:
-        ingest_image_into_seafowl(client, seafowl, image, access_token=access_token)
+    with tqdm(to_ingest) as pbar:
+        for image in pbar:
+            pbar.set_description(image.image_tag)
+            ingest_image_into_seafowl(client, seafowl, image, access_token=access_token)
 
     click.echo("All done")
 
@@ -308,13 +345,18 @@ def run_ingestion(
 @click.argument("splitgraph_remote", default="data.splitgraph.com")
 @click.argument("seafowl", default="http://localhost:8080")
 @click.option("-x", "--execute", is_flag=True)
-def main(splitgraph_remote, seafowl, execute):
+@click.option(
+    "--max-images", default=None, type=int, help="Maximum number of images to sync"
+)
+def main(splitgraph_remote, seafowl, execute, max_images):
     access_token = os.getenv("SEAFOWL_PASSWORD")
     if not access_token:
         click.echo("Not using an access token")
 
     client = GQLAPIClient(splitgraph_remote)
-    run_ingestion(client, seafowl, access_token, dry_run=not execute)
+    run_ingestion(
+        client, seafowl, access_token, dry_run=not execute, max_images=max_images
+    )
 
 
 if __name__ == "__main__":
