@@ -24,5 +24,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Run the sync
+      env:
+        SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
       run: |
-        ./pants run src/s2sf:s2sf -- data.splitgraph.com https://demo.seafowl.io
+        ./pants run src/s2sf:s2sf -- data.splitgraph.com https://seafowl-socrata.fly.dev
