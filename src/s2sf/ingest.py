@@ -10,7 +10,9 @@ import click
 import click_log
 from requests import HTTPError
 from splitgraph.cloud import GQLAPIClient, _handle_gql_errors
-from splitgraph.commandline.cloud import wait_for_download
+from splitgraph.cloud.models import ExportJobStatus
+from splitgraph.cloud.queries import EXPORT_JOB_STATUS
+from splitgraph.commandline.common import wait_for_job
 from tqdm import tqdm
 
 from .notdbt import build_models
@@ -85,6 +87,45 @@ def start_export(
         anonymous_ok=True,
     )
     return str(response.json()["data"]["exportQuery"]["id"])
+
+
+def get_export_job_status(
+    client: GQLAPIClient, task_id: str
+) -> Optional[ExportJobStatus]:
+    response = client._gql(
+        {
+            "query": EXPORT_JOB_STATUS,
+            "operationName": "ExportJobStatus",
+            "variables": {"taskId": task_id},
+        },
+        handle_errors=True,
+        anonymous_ok=True,
+    )
+
+    data = response.json()["data"]["exportJobStatus"]
+    if not data:
+        return None
+    return ExportJobStatus(
+        task_id=data["taskId"],
+        started=data["started"],
+        finished=data["finished"],
+        status=data["status"],
+        user_id=data["userId"],
+        export_format=data["exportFormat"],
+        output=data["output"],
+    )
+
+
+def wait_for_download(client: "GQLAPIClient", task_id: str) -> str:
+    final_status = wait_for_job(task_id, lambda: get_export_job_status(client, task_id))
+    if final_status.status == "SUCCESS":
+        assert final_status.output
+        return str(final_status.output["url"])
+    else:
+        raise ValueError(
+            "Error running query. This could be due to a syntax error. "
+            "Run the query interactively with `sgr cloud sql` to investigate the cause."
+        )
 
 
 def get_socrata_download_url(
