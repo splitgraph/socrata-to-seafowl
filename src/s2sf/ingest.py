@@ -1,21 +1,20 @@
 import itertools
-import json
 import logging
-import math
 import os
 import random
 import string
 from datetime import datetime
-from numbers import Number
 from typing import Any, Dict, List, NamedTuple, Optional
 
 import click
 import click_log
-import requests
 from requests import HTTPError
 from splitgraph.cloud import GQLAPIClient, _handle_gql_errors
 from splitgraph.commandline.cloud import wait_for_download
 from tqdm import tqdm
+
+from .notdbt import build_models
+from .seafowl import SEAFOWL_SCHEMA, SEAFOWL_TABLE, emit_value, query_seafowl
 
 logger = logging.getLogger(__name__)
 click_log.basic_config(logger)
@@ -38,9 +37,6 @@ SCHEMA = {
     "sg_image_created": "TIMESTAMP",
 }
 
-SEAFOWL_SCHEMA = "socrata"
-SEAFOWL_TABLE = "dataset_history"
-
 ALL_IMAGES_AND_TAGS = """
 query AllSocrataImages {
   images(orderBy:CREATED_ASC, condition:{namespace:"splitgraph", repository:"socrata"}) {
@@ -62,25 +58,6 @@ class SocrataImage(NamedTuple):
     image_hash: str
     image_tag: str
     created: datetime
-
-
-def emit_value(value: Any) -> str:
-    if value is None:
-        return "NULL"
-
-    if isinstance(value, float):
-        if math.isnan(value):
-            return "NULL"
-        return f"{value:.20f}"
-
-    if isinstance(value, Number) and not isinstance(value, bool):
-        return str(value)
-
-    if isinstance(value, datetime):
-        return f"'{value.isoformat()}'"
-
-    quoted = str(value).replace("'", "''")
-    return f"'{quoted}'"
 
 
 START_EXPORT = """mutation StartExport($query: String!, $format: String! = "csv") {
@@ -182,20 +159,6 @@ def get_socrata_images(client: GQLAPIClient, daily: bool = True) -> List[Socrata
         ]
 
     return output
-
-
-def query_seafowl(endpoint: str, sql: str, access_token: Optional[str] = None) -> Any:
-    headers = {"Content-Type": "application/json"}
-    if access_token:
-        headers["Authorization"] = f"Bearer {access_token}"
-    response = requests.post(f"{endpoint}/q", json={"query": sql}, headers=headers)
-
-    if not response.ok:
-        logger.error(response.text)
-    response.raise_for_status()
-    if response.text:
-        return [json.loads(t) for t in response.text.strip().split("\n")]
-    return None
 
 
 def generate_insert(
@@ -362,7 +325,7 @@ def run_ingestion(
 @click.option(
     "--max-images", default=None, type=int, help="Maximum number of images to sync"
 )
-def main(splitgraph_remote, seafowl, execute, max_images):
+def ingest(splitgraph_remote, seafowl, execute, max_images):
     access_token = os.getenv("SEAFOWL_PASSWORD")
     if not access_token:
         click.echo("Not using an access token")
@@ -372,6 +335,26 @@ def main(splitgraph_remote, seafowl, execute, max_images):
         client, seafowl, access_token, dry_run=not execute, max_images=max_images
     )
 
+
+@click.command(name="build")
+@click.argument("seafowl", default="http://localhost:8080")
+@click_log.simple_verbosity_option(logger)
+def build_tables(seafowl):
+    """Build frozen SQL tables"""
+    access_token = os.getenv("SEAFOWL_PASSWORD")
+    if not access_token:
+        click.echo("Not using an access token")
+
+    build_models(seafowl, access_token)
+
+
+@click.group()
+def main():
+    pass
+
+
+main.add_command(ingest)
+main.add_command(build_tables)
 
 if __name__ == "__main__":
     main()

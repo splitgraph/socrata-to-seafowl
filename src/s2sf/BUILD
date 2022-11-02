@@ -1,4 +1,4 @@
-python_sources(name="lib")
+python_sources(name="lib", dependencies=["./sql:models"])
 python_tests(name="tests")
 
 pex_binary(
