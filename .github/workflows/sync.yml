@@ -27,7 +27,7 @@ jobs:
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
       run: |
-        ./pants run src/s2sf:s2sf -- ingest data.splitgraph.com https://seafowl-socrata.fly.dev --execute
+        ./pants run src/s2sf:s2sf -- ingest data.splitgraph.com https://seafowl-socrata.fly.dev
     - name: Build derived tables
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
