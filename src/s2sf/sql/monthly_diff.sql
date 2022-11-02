@@ -1,5 +1,5 @@
 WITH by_period AS (
-    SELECT date_trunc('month', date) AS period,
+    SELECT date_trunc('month', day) AS period,
     *
     FROM socrata.daily_diff
 ),
@@ -8,8 +8,8 @@ period_stats AS (
         period,
         id,
         is_added,
-        ROW_NUMBER() OVER (PARTITION BY period, id ORDER BY date ASC) = 1 AS is_earliest,
-        ROW_NUMBER() OVER (PARTITION BY period, id ORDER BY date DESC) = 1 AS is_latest
+        ROW_NUMBER() OVER (PARTITION BY period, id ORDER BY day ASC) = 1 AS is_earliest,
+        ROW_NUMBER() OVER (PARTITION BY period, id ORDER BY day DESC) = 1 AS is_latest
     FROM by_period
 ),
 first_last_in_period AS (

@@ -5,6 +5,7 @@ from typing import Optional
 from .seafowl import SEAFOWL_SCHEMA, emit_value, query_seafowl
 
 TO_BUILD = [
+    "all_datasets.sql",
     "daily_diff.sql",
     "monthly_diff.sql",
     "weekly_diff.sql",
