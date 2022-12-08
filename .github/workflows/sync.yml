@@ -23,6 +23,10 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Setup flyctl
+      uses: superfly/flyctl-actions/setup-flyctl@master
+    - name: Scale Fly VM up
+      run: flyctl scale vm dedicated-cpu-2x --memory=16384
     - name: Run the sync
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
@@ -38,3 +42,5 @@ jobs:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
       run: |
         ./pants run src/s2sf:s2sf -- vacuum https://seafowl-socrata.fly.dev
+    - name: Scale Fly VM down
+      run: flyctl scale vm shared-cpu-1x --memory=2048
