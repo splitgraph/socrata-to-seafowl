@@ -45,7 +45,7 @@ jobs:
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
       run: |
-        ./pants run src/s2sf:s2sf -- vacuum https://seafowl-socrata.fly.dev
+        ./pants run src/s2sf:s2sf -- build https://seafowl-socrata.fly.dev || (echo "retrying"; sleep 10; ./pants run src/s2sf:s2sf -- build https://seafowl-socrata.fly.dev)
     - name: Scale Fly VM down
       run: flyctl scale vm shared-cpu-1x --memory=2048
       env:
