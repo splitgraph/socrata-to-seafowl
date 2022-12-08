@@ -36,5 +36,5 @@ jobs:
     - name: Clean up old table versions
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
-        run: |
-          ./pants run src/s2sf:s2sf -- vacuum https://seafowl-socrata.fly.dev
+      run: |
+        ./pants run src/s2sf:s2sf -- vacuum https://seafowl-socrata.fly.dev
