@@ -47,7 +47,7 @@ jobs:
       run: |
         ./pants run src/s2sf:s2sf -- build https://seafowl-socrata.fly.dev || (echo "retrying"; sleep 10; ./pants run src/s2sf:s2sf -- build https://seafowl-socrata.fly.dev)
     - name: Scale Fly VM down
-      if: always
+      if: always()
       run: flyctl scale vm shared-cpu-1x --memory=2048
       env:
         FLY_ACCESS_TOKEN: ${{ secrets.FLY_ACCESS_TOKEN }}
