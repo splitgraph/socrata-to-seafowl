@@ -389,6 +389,19 @@ def build_tables(seafowl):
     build_models(seafowl, access_token)
 
 
+@click.command(name="vacuum")
+@click.argument("seafowl", default="http://localhost:8080")
+@click_log.simple_verbosity_option(logger)
+def vacuum(seafowl):
+    """Clean up old table versions"""
+    access_token = os.getenv("SEAFOWL_PASSWORD")
+    if not access_token:
+        click.echo("Not using an access token")
+
+    query_seafowl(seafowl, "VACUUM TABLES", access_token=access_token)
+    query_seafowl(seafowl, "VACUUM PARTITIONS", access_token=access_token)
+
+
 @click.group()
 def main():
     pass
@@ -396,6 +409,7 @@ def main():
 
 main.add_command(ingest)
 main.add_command(build_tables)
+main.add_command(vacuum)
 
 if __name__ == "__main__":
     main()
