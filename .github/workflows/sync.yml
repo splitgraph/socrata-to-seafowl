@@ -1,7 +1,9 @@
 name: Sync Socrata to Seafowl
 
-# TODO add cronjob
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  # schedule:
+  # - cron: "10 0 * * *"
 
 jobs:
   sync:
