@@ -1,0 +1,19 @@
+name: Downsize Fly.io VM
+# `sync.yml` needs to scale Fly.io VM to an higher-cost tier to get its job done.
+# However, if sync.yml fails to execute to the end it poses a risk of 
+# large Fly.io bills. `downsize-insurance.yml` is intended to run after the sync
+# job finishes as a failsafe.
+
+on:
+  schedule:
+  - cron: '30 0 * * *'
+
+jobs:
+  downsize:
+    name: Downsize Fly.io VM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scale Fly VM down
+        run: flyctl scale vm shared-cpu-1x --memory=2048
+        env:
+          FLY_ACCESS_TOKEN: ${{ secrets.FLY_ACCESS_TOKEN }}
