@@ -13,9 +13,10 @@ jobs:
     name: Downsize Fly.io VM
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Scale Fly VM down
-        run: flyctl -a seafowl-socrat scale vm shared-cpu-1x --memory=2048
+        run: flyctl scale vm shared-cpu-1x --memory=2048
         env:
           FLY_ACCESS_TOKEN: ${{ secrets.FLY_ACCESS_TOKEN }}
