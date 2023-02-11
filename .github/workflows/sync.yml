@@ -14,6 +14,8 @@ jobs:
         python-version: [ 3.9 ]
     steps:
     - uses: actions/checkout@v3
+    - name: Setup flyctl
+      uses: superfly/flyctl-actions/setup-flyctl@master
     - uses: pantsbuild/actions/init-pants@main
       with:
         gha-cache-key: cache0-py${{ matrix.python-version }}
@@ -25,8 +27,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Setup flyctl
-      uses: superfly/flyctl-actions/setup-flyctl@master
     - name: Scale Fly VM up and block until finished
       run: flyctl scale vm dedicated-cpu-4x --memory=32768; sleep 10; flyctl monitor; sleep 10
       env:
