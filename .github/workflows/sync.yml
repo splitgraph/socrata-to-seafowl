@@ -28,7 +28,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Scale Fly VM up and block until finished
-      run: flyctl scale vm dedicated-cpu-4x --memory=32768; sleep 10; flyctl monitor; sleep 10
+      run: flyctl scale vm dedicated-cpu-8x --memory=32768; sleep 10; flyctl monitor; sleep 10
       env:
         FLY_ACCESS_TOKEN: ${{ secrets.FLY_ACCESS_TOKEN }}
     - name: Run the sync
