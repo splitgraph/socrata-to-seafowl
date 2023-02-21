@@ -285,7 +285,7 @@ def get_seafowl_socrata_tags(
         SocrataImage(
             image_hash=i["sg_image_hash"],
             image_tag=i["sg_image_tag"],
-            created=datetime.strptime(i["sg_image_created"], "%Y-%m-%d %H:%M:%S.%f"),
+            created=datetime.strptime(i["sg_image_created"], "%Y-%m-%dT%H:%M:%S.%f"),
         )
         for i in result
     ]
