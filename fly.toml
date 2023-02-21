@@ -6,11 +6,10 @@ kill_timeout = 5
 processes = []
 
 [build]
-  image = "splitgraph/seafowl:latest"
+  image = "splitgraph/seafowl:0.2.12"
 
 [env]
-  #RUST_LOG="debug"
-  SEAFOWL__RUNTIME__MAX_MEMORY="1024"
+  RUST_LOG="debug"
 
 [experimental]
   allowed_public_ports = []
