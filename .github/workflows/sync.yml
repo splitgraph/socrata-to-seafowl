@@ -3,7 +3,7 @@ name: Sync Socrata to Seafowl
 on:
   workflow_dispatch:
   schedule:
-  - cron: "10 1 * * *"
+  - cron: "10 0 * * *"
 
 jobs:
   sync:
@@ -28,7 +28,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Scale Fly VM up and block until finished
-      run: flyctl scale vm dedicated-cpu-8x --memory=32768; sleep 10; flyctl monitor; sleep 10
+      run: flyctl scale vm dedicated-cpu-8x --memory=32768; flyctl deploy --detach
       env:
         FLY_ACCESS_TOKEN: ${{ secrets.FLY_ACCESS_TOKEN }}
     - name: Run the sync
