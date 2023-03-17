@@ -1,9 +1,6 @@
 name: Sync Socrata to Seafowl
 
-on:
-  workflow_dispatch:
-  schedule:
-  - cron: "10 0 * * *"
+on: workflow_dispatch
 
 jobs:
   sync:
@@ -27,27 +24,18 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Scale Fly VM up and block until finished
-      run: flyctl scale vm dedicated-cpu-8x --memory=32768; flyctl deploy --detach
-      env:
-        FLY_ACCESS_TOKEN: ${{ secrets.FLY_ACCESS_TOKEN }}
     - name: Run the sync
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
       run: |
-        ./pants run src/s2sf:s2sf -- ingest data.splitgraph.com https://seafowl-socrata.fly.dev --execute
+        ./pants run src/s2sf:s2sf -- ingest data.splitgraph.com https://opendatamonitor-write-xv6m2mycsq-ue.a.run.app --execute
     - name: Build derived tables
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
       run: |
-        ./pants run src/s2sf:s2sf -- build https://seafowl-socrata.fly.dev
+        ./pants run src/s2sf:s2sf -- build https://opendatamonitor-write-xv6m2mycsq-ue.a.run.app
     - name: Clean up old table versions
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
       run: |
-        ./pants run src/s2sf:s2sf -- build https://seafowl-socrata.fly.dev || (echo "retrying"; sleep 10; ./pants run src/s2sf:s2sf -- build https://seafowl-socrata.fly.dev)
-    - name: Scale Fly VM down
-      if: always()
-      run: flyctl scale vm shared-cpu-1x --memory=2048
-      env:
-        FLY_ACCESS_TOKEN: ${{ secrets.FLY_ACCESS_TOKEN }}
+        ./pants run src/s2sf:s2sf -- build https://opendatamonitor-write-xv6m2mycsq-ue.a.run.app
