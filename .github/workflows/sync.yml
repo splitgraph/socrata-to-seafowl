@@ -10,7 +10,7 @@ jobs:
       matrix:
         python-version: [ 3.9 ]
     steps:
-    - uses: actions/checkout@v3
+   - uses: actions/checkout@v3
     - uses: pantsbuild/actions/init-pants@main
       with:
         gha-cache-key: cache0-py${{ matrix.python-version }}
@@ -36,4 +36,4 @@ jobs:
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
       run: |
-        ./pants run src/s2sf:s2sf -- build https://opendatamonitor-write-xv6m2mycsq-ue.a.run.app
+        ./pants run src/s2sf:s2sf -- vacuum https://opendatamonitor-write-xv6m2mycsq-ue.a.run.app
