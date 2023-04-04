@@ -4,7 +4,7 @@ WITH snapshot_times AS (
         *
     FROM socrata.dataset_history
     -- Exclude old scrapes (big diffs)
-    WHERE sg_image_created::timestamp > '2022-01-01 00:00:00'::timestamp
+    WHERE sg_image_created::timestamp > to_timestamp_micros('2022-01-01 00:00:00')
 ),
 all_observations AS (
     SELECT

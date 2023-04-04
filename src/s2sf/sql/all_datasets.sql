@@ -6,7 +6,7 @@ WITH snapshot_times AS (
         date_trunc('day', sg_image_created) AS snapshot_time_day,
         *
     FROM socrata.dataset_history
-    WHERE sg_image_created::timestamp > '2022-01-01 00:00:00'::timestamp
+    WHERE sg_image_created::timestamp > to_timestamp_micros('2022-01-01 00:00:00')
 ),
 dataset_first_last AS (
     SELECT
