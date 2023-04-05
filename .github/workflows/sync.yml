@@ -10,7 +10,7 @@ jobs:
       matrix:
         python-version: [ 3.9 ]
     steps:
-   - uses: actions/checkout@v3
+    - uses: actions/checkout@v3
     - uses: pantsbuild/actions/init-pants@main
       with:
         gha-cache-key: cache0-py${{ matrix.python-version }}
