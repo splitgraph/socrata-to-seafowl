@@ -31,9 +31,12 @@ jobs:
       env:
         SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
       run: |
-        ./pants run src/s2sf:s2sf -- build https://socfeed-data.splitgraph.io
-    - name: Clean up old table versions
-      env:
-        SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
-      run: |
-        ./pants run src/s2sf:s2sf -- vacuum https://socfeed-data.splitgraph.io
+        ./pants run src/s2sf:s2sf -- build http://ec2-13-40-18-245.eu-west-2.compute.amazonaws.com
+    # As of Apr 2023, Seafowl says
+    #  SQL error: ParserError("Expected PARTITIONS, TABLE or DATABASE are supported VACUUM targets, found: TABLES")
+    # Thus supress until Seafowl supports
+    #- name: Clean up old table versions 
+    #  env:
+    #    SEAFOWL_PASSWORD: ${{ secrets.SEAFOWL_PASSWORD }}
+    #  run: |
+    #    ./pants run src/s2sf:s2sf -- vacuum https://socfeed-data.splitgraph.io
